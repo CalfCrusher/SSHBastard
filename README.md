@@ -1,5 +1,5 @@
 # SSHBastard
-**A tool to scan and bruteforce ssh servers through TOR network using wordlist**
+**A tool to scan and bruteforce ssh servers (optionally through TOR network) using wordlist**
 
 
 
