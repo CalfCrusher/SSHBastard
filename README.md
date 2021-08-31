@@ -1,7 +1,5 @@
 # SSHBastard
-**A tool to scan and bruteforce CIDR range to search ssh servers (optionally through TOR network) using wordlists**
-
-
+**A tool to scan CIDR range, searching SSH servers and try to bruteforce them using wordlists using wordlists**
 
 ## Disclaimer
 
