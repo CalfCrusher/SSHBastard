@@ -1,5 +1,5 @@
 # SSHBastard
-**This tool scan CIDR range to search SSH servers, then try to bruteforce them using wordlists**
+**This tool scan CIDR range to search SSH servers, then start to bruteforce every single IP using a given wordlist**
 
 ## Disclaimer
 
